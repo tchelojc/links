@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ALMAFLUXO · Finalizar Acesso</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #00ffff;
+      --secondary: #00ff88;
+      --bg: #05080a;
+      --card-bg: rgba(10, 18, 28, 0.95);
+      --text: #e0e6ed;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: var(--bg);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 255, 255, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(0, 255, 136, 0.05) 0%, transparent 40%);
+      color: var(--text);
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; padding: 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 28px;
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      padding: 40px;
+      max-width: 550px; width: 100%;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      text-align: center;
+      font-size: 1.5rem;
+      letter-spacing: 2px;
+      color: var(--primary);
+      margin-bottom: 30px;
+      text-transform: uppercase;
+      text-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+    }
+
+    .step-indicator {
+      display: flex; justify-content: center; gap: 10px; margin-bottom: 30px;
+    }
+    .step { width: 40px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .step.active { background: var(--primary); box-shadow: 0 0 10px var(--primary); }
+
+    .resumo {
+      background: rgba(0, 255, 255, 0.03);
+      border: 1px solid rgba(0, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 20px; margin-bottom: 25px;
+    }
+    .resumo-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+    .resumo-label { color: rgba(255,255,255,0.5); }
+    .resumo-value { color: #fff; font-weight: 500; text-align: right; }
+
+    .valor-container {
+      text-align: center; margin: 20px 0; padding: 15px;
+      border-top: 1px dashed rgba(255,255,255,0.1);
+    }
+    .valor-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--secondary); }
+    .valor-total { font-family: 'Orbitron', sans-serif; font-size: 2.5rem; color: #fff; margin-top: 5px; }
+
+    .pix-box {
+      background: #000; border-radius: 20px; padding: 25px;
+      text-align: center; border: 1px solid rgba(0, 255, 136, 0.2);
+      margin-bottom: 30px;
+    }
+    .pix-title { font-size: 0.8rem; font-weight: bold; margin-bottom: 15px; color: var(--secondary); }
+    
+    .qr-placeholder {
+      background: #fff; padding: 10px; display: inline-block;
+      border-radius: 12px; margin-bottom: 15px;
+    }
+
+    .chave-container {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px; padding: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; cursor: pointer; transition: 0.2s;
+    }
+    .chave-container:hover { background: rgba(255,255,255,0.1); }
+    .pix-chave { font-family: monospace; font-size: 0.9rem; color: var(--primary); overflow: hidden; text-overflow: ellipsis; }
+    
+    .btn-copy {
+      background: var(--primary); color: #000; border: none;
+      padding: 8px 15px; border-radius: 8px; font-weight: bold;
+      font-size: 0.7rem; cursor: pointer; text-transform: uppercase;
+    }
+
+    .form-title { font-size: 0.9rem; font-weight: bold; margin-bottom: 15px; color: #fff; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-bottom: 5px; }
+    .form-group input {
+      width: 100%; padding: 12px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05); color: #fff; font-family: inherit;
+    }
+    .form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 10px rgba(0, 255, 255, 0.1); }
+
+    button[type="submit"] {
+      width: 100%; padding: 15px; border-radius: 50px;
+      background: linear-gradient(90deg, #00ffff, #00ff88);
+      color: #000; border: none; font-weight: bold;
+      font-family: 'Orbitron', sans-serif; cursor: pointer;
+      transition: 0.3s; margin-top: 10px; letter-spacing: 1px;
+    }
+    button[type="submit"]:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0, 255, 255, 0.2); }
+    button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .msg { margin-top: 20px; padding: 15px; border-radius: 12px; font-size: 0.85rem; display: none; text-align: center; }
+    .success { background: rgba(0, 255, 136, 0.1); color: #00ff88; border: 1px solid #00ff88; }
+    .error { background: rgba(255, 0, 0, 0.1); color: #ff6666; border: 1px solid #ff6666; }
+
+    .footer {
+      margin-top: 30px; text-align: center; font-size: 0.75rem;
+      color: rgba(255,255,255,0.3); line-height: 1.5;
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 25px; }
+      .valor-total { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Finalizar Acesso</h1>
+
+  <div class="step-indicator">
+    <div class="step"></div>
+    <div class="step active"></div>
+    <div class="step"></div>
+  </div>
+
+  <div class="resumo">
+    <div class="resumo-item">
+      <span class="resumo-label">Usuário:</span>
+      <span class="resumo-value" id="nome">...</span>
+    </div>
+    <div class="resumo-item">
+      <span class="resumo-label">E-mail:</span>
+      <span class="resumo-value" id="email">...</span>
+    </div>
+    <div class="resumo-item">
+      <span class="resumo-label">Serviço:</span>
+      <span class="resumo-value" id="servico">...</span>
+    </div>
+    <div class="resumo-item" id="boxDetalhes">
+      <span class="resumo-label">Detalhes:</span>
+      <span class="resumo-value" id="detalhes">...</span>
+    </div>
+    
+    <div class="valor-container">
+      <div class="valor-label">Total a Pagar</div>
+      <div class="valor-total" id="valor">R$ 0,00</div>
+    </div>
+  </div>
+
+  <div class="pix-box">
+    <div class="pix-title">⚡ PAGAMENTO VIA PIX</div>
+    
+    <div class="qr-placeholder" id="qrCode">
+      </div>
+
+    <div class="chave-container" onclick="copyPix()">
+      <div style="text-align: left; overflow: hidden;">
+        <span style="display:block; font-size:0.6rem; color:rgba(255,255,255,0.4); text-transform:uppercase;">Clique para copiar a chave</span>
+        <span class="pix-chave" id="chavePix">tchelojc@gmail.com</span>
+      </div>
+      <button class="btn-copy" id="btnCopy">Copiar</button>
+    </div>
+  </div>
+
+  <div class="form-title">🛡️ Confirmação de Pagamento</div>
+  <form id="comprovanteForm">
+    <input type="hidden" name="access_key" value="eb4edc0c-b94c-4287-83bf-6f2e05f65774">
+    <input type="hidden" name="subject" value="✅ NOVO COMPROVANTE - ALMAFLUXO">
+    
+    <div class="form-group">
+      <label>ID da Transação ou Nome no Comprovante</label>
+      <input type="text" name="transaction_id" placeholder="Ex: E12345678..." required>
+    </div>
+    
+    <div class="form-group">
+      <label>Valor Pago (R$)</label>
+      <input type="number" step="0.01" name="valor_pago" id="inputValorPago" required>
+    </div>
+
+    <button type="submit" id="btnSubmit">ENVIAR COMPROVANTE</button>
+  </form>
+
+  <div id="msg" class="msg"></div>
+
+  <div class="footer">
+    A liberação ocorre após a conferência manual pela equipe.<br>
+    <strong>Tempo médio:</strong> 15 a 60 minutos em horário comercial.
+  </div>
+</div>
+
+<script>
+  // 1. Extração Inteligente de Parâmetros
+  const params = new URLSearchParams(window.location.search);
+  const nome = decodeURIComponent(params.get('nome') || 'Usuário');
+  const email = decodeURIComponent(params.get('email') || 'Não informado');
+  const valor = params.get('valor') || '0';
+  const tipo = params.get('tipo');
+  
+  let servicoNome = "";
+  let detalhesTexto = "";
+
+  if (tipo === 'trading') {
+    servicoNome = "Acesso Trading Diário";
+    const dias = params.get('dias') || '1';
+    detalhesTexto = `${dias} dia(s) de acesso`;
+  } else if (tipo === 'numerologia') {
+    servicoNome = decodeURIComponent(params.get('servico') || 'Autoconhecimento');
+    const civs = decodeURIComponent(params.get('civilizacoes') || '');
+    detalhesTexto = civs ? `Civilizações: ${civs}` : "Análise Pessoal";
+  } else {
+    servicoNome = "Serviço ALMAFLUXO";
+    detalhesTexto = "Análise de Sistema";
+  }
+
+  // 2. Preenchimento da UI
+  document.getElementById('nome').textContent = nome;
+  document.getElementById('email').textContent = email;
+  document.getElementById('servico').textContent = servicoNome;
+  document.getElementById('detalhes').textContent = detalhesTexto;
+  const valorFormatado = parseFloat(valor).toFixed(2);
+  document.getElementById('valor').textContent = `R$ ${valorFormatado.replace('.', ',')}`;
+  document.getElementById('inputValorPago').value = valor;
+
+  // 3. Gerar QR Code
+  const chavePix = "tchelojc@gmail.com";
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=pix:${encodeURIComponent(chavePix)}?amount=${valor}`;
+  document.getElementById('qrCode').innerHTML = `<img src="${qrUrl}" alt="QR PIX" style="display:block;">`;
+
+  // 4. Função Copiar
+  function copyPix() {
+    const text = document.getElementById('chavePix').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('btnCopy');
+      btn.textContent = "Copiado!";
+      btn.style.background = "#00ff88";
+      setTimeout(() => {
+        btn.textContent = "Copiar";
+        btn.style.background = "#00ffff";
+      }, 2000);
+    });
+  }
+
+  // 5. Envio do Formulário
+  document.getElementById('comprovanteForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmit');
+    const msgDiv = document.getElementById('msg');
+    
+    btn.disabled = true;
+    btn.textContent = "PROCESSANDO...";
+    msgDiv.style.display = "none";
+
+    const fd = new FormData(this);
+    
+    // Constrói a mensagem rica para o seu e-mail
+    const corpoEmail = `
+      NOVO PAGAMENTO IDENTIFICADO
+      ---------------------------------
+      CLIENTE: ${nome}
+      EMAIL: ${email}
+      SERVIÇO: ${servicoNome}
+      DETALHES: ${detalhesTexto}
+      VALOR ESPERADO: R$ ${valor}
+      
+      DADOS DO COMPROVANTE:
+      VALOR INFORMADO: R$ ${fd.get('valor_pago')}
+      ID/REF: ${fd.get('transaction_id')}
+      ---------------------------------
+      Chave PIX utilizada: ${chavePix}
+    `;
+
+    fd.append('message', corpoEmail);
+
+    try {
+      const r = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        body: fd
+      });
+      const d = await r.json();
+
+      if (d.success) {
+        msgDiv.className = "msg success";
+        msgDiv.textContent = "✅ Comprovante enviado! O acesso será enviado para seu e-mail em breve.";
+        msgDiv.style.display = "block";
+        this.reset();
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      msgDiv.className = "msg error";
+      msgDiv.textContent = "❌ Erro no envio. Envie o print para almafluxo@almafluxo.uk";
+      msgDiv.style.display = "block";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "ENVIAR COMPROVANTE";
+    }
+  });
+</script>
+
+</body>
+</html>
