@@ -171,13 +171,12 @@
   <div class="pix-box">
     <div class="pix-title">⚡ PAGAMENTO VIA PIX</div>
     
-    <div class="qr-placeholder" id="qrCode">
-      </div>
+    <div class="qr-placeholder" id="qrCode"></div>
 
     <div class="chave-container" onclick="copyPix()">
       <div style="text-align: left; overflow: hidden;">
         <span style="display:block; font-size:0.6rem; color:rgba(255,255,255,0.4); text-transform:uppercase;">Clique para copiar a chave</span>
-        <span class="pix-chave" id="chavePix">21981533928</span>
+        <span class="pix-chave" id="chavePix">tchelojc@gmail.com</span>
       </div>
       <button class="btn-copy" id="btnCopy">Copiar</button>
     </div>
@@ -210,110 +209,168 @@
 </div>
 
 <script>
-  // 1. Extração Inteligente de Parâmetros
-  const params = new URLSearchParams(window.location.search);
-  const nome = decodeURIComponent(params.get('nome') || 'Usuário');
-  const email = decodeURIComponent(params.get('email') || 'Não informado');
-  const valor = params.get('valor') || '0';
-  const tipo = params.get('tipo');
-  
-  let servicoNome = "";
-  let detalhesTexto = "";
+  // ============================================================
+  // CONFIGURAÇÃO DO PROXY GOOGLE APPS SCRIPT (ATUALIZADA)
+  // ============================================================
+  const PROXY_URL = 'https://script.google.com/macros/s/AKfycbwhGYrKsQm1lsLev3NLt6nXzfT5AxNDQnulb0lId1-wsjuePpGG4o53mgj3sg3H6Cmh/exec';
 
+  // ── Device ID (FNV-1a) ──
+  const _DK = 'alma_device_id';
+  function _fnv(raw) {
+    let h = 2166136261;
+    for (let i = 0; i < raw.length; i++) { h ^= raw.charCodeAt(i); h = (h * 16777619) >>> 0; }
+    return 'dev_' + h.toString(36);
+  }
+  function _deviceId() {
+    const raw = [navigator.userAgent, navigator.language||'',
+      (Intl.DateTimeFormat().resolvedOptions().timeZone||''),
+      navigator.hardwareConcurrency||0, navigator.deviceMemory||0,
+      screen.width+'x'+screen.height, screen.colorDepth||0].join('|');
+    return _fnv(raw);
+  }
+  const DEVICE_ID = (() => {
+    try {
+      let id = localStorage.getItem(_DK);
+      if (!id) { id = _deviceId(); localStorage.setItem(_DK, id); }
+      return id;
+    } catch(_) { return _deviceId(); }
+  })();
+
+  // 1. Extração dos parâmetros da URL
+  const params     = new URLSearchParams(window.location.search);
+  const nome       = decodeURIComponent(params.get('nome')  || 'Usuário');
+  const email      = decodeURIComponent(params.get('email') || 'Não informado');
+  const valor      = params.get('valor') || '0';
+  const tipo       = params.get('tipo');
+  const deviceParam= decodeURIComponent(params.get('device') || DEVICE_ID);
+
+  let servicoNome = '', detalhesTexto = '';
   if (tipo === 'trading') {
-    servicoNome = "Acesso Trading Diário";
-    const dias = params.get('dias') || '1';
+    servicoNome   = 'Acesso Trading Diário';
+    const dias    = params.get('dias') || '1';
     detalhesTexto = `${dias} dia(s) de acesso`;
   } else if (tipo === 'numerologia') {
-    servicoNome = decodeURIComponent(params.get('servico') || 'Autoconhecimento');
-    const civs = decodeURIComponent(params.get('civilizacoes') || '');
-    detalhesTexto = civs ? `Civilizações: ${civs}` : "Análise Pessoal";
+    servicoNome   = decodeURIComponent(params.get('servico') || 'Autoconhecimento');
+    const civs    = decodeURIComponent(params.get('civilizacoes') || '');
+    detalhesTexto = civs ? `Civilizações: ${civs}` : 'Análise Pessoal';
   } else {
-    servicoNome = "Serviço ALMAFLUXO";
-    detalhesTexto = "Análise de Sistema";
+    servicoNome   = 'Serviço ALMAFLUXO';
+    detalhesTexto = 'Análise de Sistema';
   }
 
   // 2. Preenchimento da UI
-  document.getElementById('nome').textContent = nome;
-  document.getElementById('email').textContent = email;
+  document.getElementById('nome').textContent    = nome;
+  document.getElementById('email').textContent   = email;
   document.getElementById('servico').textContent = servicoNome;
-  document.getElementById('detalhes').textContent = detalhesTexto;
+  document.getElementById('detalhes').textContent= detalhesTexto;
   const valorFormatado = parseFloat(valor).toFixed(2);
-  document.getElementById('valor').textContent = `R$ ${valorFormatado.replace('.', ',')}`;
+  document.getElementById('valor').textContent   = `R$ ${valorFormatado.replace('.',',')}`;
   document.getElementById('inputValorPago').value = valor;
 
-  // 3. Gerar QR Code
-  const chavePix = "tchelojc@gmail.com";
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=pix:${encodeURIComponent(chavePix)}?amount=${valor}`;
+  // 3. QR Code PIX
+  const chavePix = 'tchelojc@gmail.com';
+  const qrUrl    = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=pix:${encodeURIComponent(chavePix)}?amount=${valor}`;
   document.getElementById('qrCode').innerHTML = `<img src="${qrUrl}" alt="QR PIX" style="display:block;">`;
 
-  // 4. Função Copiar
+  // 4. Copiar chave PIX
   function copyPix() {
     const text = document.getElementById('chavePix').textContent;
     navigator.clipboard.writeText(text).then(() => {
       const btn = document.getElementById('btnCopy');
-      btn.textContent = "Copiado!";
-      btn.style.background = "#00ff88";
-      setTimeout(() => {
-        btn.textContent = "Copiar";
-        btn.style.background = "#00ffff";
-      }, 2000);
+      btn.textContent = 'Copiado!'; btn.style.background = '#00ff88';
+      setTimeout(() => { btn.textContent = 'Copiar'; btn.style.background = '#00ffff'; }, 2000);
     });
   }
 
-  // 5. Envio do Formulário
+  // ============================================================
+  // FUNÇÕES DE COMUNICAÇÃO COM O PROXY (APPS SCRIPT)
+  // ============================================================
+  async function chamarProxy(action, dados = {}) {
+    const response = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...dados })
+    });
+    if (!response.ok) throw new Error(`Proxy error: ${response.status}`);
+    const result = await response.json();
+    if (!result.ok) throw new Error(result.error || 'Erro desconhecido');
+    return result;
+  }
+
+  // Registra licença permanente via proxy
+  async function registrarPermanente(transacaoId, valorPago) {
+    try {
+      const diasNum = tipo === 'trading' ? parseInt(params.get('dias')||1) : null;
+      const expiraTrade = (tipo === 'trading' && diasNum)
+        ? Date.now() + diasNum * 24 * 60 * 60 * 1000
+        : null;
+
+      const result = await chamarProxy('register_permanent', {
+        email: email.toLowerCase(),
+        nome: nome,
+        tipo: tipo,
+        servicoNome: servicoNome,
+        detalhesTexto: detalhesTexto,
+        valor: valorPago,
+        transacaoId: transacaoId,
+        deviceId: deviceParam,
+        expira: expiraTrade
+      });
+      return result.id;   // o proxy retorna { ok: true, id: "P0001" }
+    } catch (err) {
+      console.error('[ALMAFLUXO pagamento]', err);
+      return null;
+    }
+  }
+
+  // 5. Envio do comprovante (Web3Forms + registro de licença)
   document.getElementById('comprovanteForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const btn = document.getElementById('btnSubmit');
+    const btn    = document.getElementById('btnSubmit');
     const msgDiv = document.getElementById('msg');
-    
-    btn.disabled = true;
-    btn.textContent = "PROCESSANDO...";
-    msgDiv.style.display = "none";
+    btn.disabled = true; btn.textContent = 'PROCESSANDO...'; msgDiv.style.display = 'none';
 
-    const fd = new FormData(this);
-    
-    // Constrói a mensagem rica para o seu e-mail
-    const corpoEmail = `
-      NOVO PAGAMENTO IDENTIFICADO
-      ---------------------------------
-      CLIENTE: ${nome}
-      EMAIL: ${email}
-      SERVIÇO: ${servicoNome}
-      DETALHES: ${detalhesTexto}
-      VALOR ESPERADO: R$ ${valor}
-      
-      DADOS DO COMPROVANTE:
-      VALOR INFORMADO: R$ ${fd.get('valor_pago')}
-      ID/REF: ${fd.get('transaction_id')}
-      ---------------------------------
-      Chave PIX utilizada: ${chavePix}
-    `;
+    const fd         = new FormData(this);
+    const transacaoId = fd.get('transaction_id');
+    const valorPago   = fd.get('valor_pago');
+    const dataHora    = new Date().toLocaleString('pt-BR');
+
+    // Registra licença via proxy
+    const licencaId = await registrarPermanente(transacaoId, valorPago);
+
+    // Monta corpo do e-mail (para notificação manual via Web3Forms)
+    const corpoEmail =
+      `NOVO PAGAMENTO — ALMAFLUXO\n` +
+      `────────────────────────────────────\n` +
+      `CLIENTE: ${nome}\nEMAIL: ${email}\n` +
+      `SERVIÇO: ${servicoNome}\nDETALHES: ${detalhesTexto}\n` +
+      `VALOR ESPERADO: R$ ${valor}\nDATA: ${dataHora}\n` +
+      `DEVICE ID: ${deviceParam}\n` +
+      `\nDados do Comprovante:\n` +
+      `VALOR PAGO: R$ ${valorPago}\nID/REF: ${transacaoId}\n` +
+      `LICENÇA GERADA: ${licencaId || 'PENDENTE (registrar manualmente)'}\n` +
+      `────────────────────────────────────\n` +
+      `Chave PIX: ${chavePix}`;
 
     fd.append('message', corpoEmail);
 
     try {
-      const r = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        body: fd
-      });
+      const r = await fetch('https://api.web3forms.com/submit', { method:'POST', body: fd });
       const d = await r.json();
-
       if (d.success) {
-        msgDiv.className = "msg success";
-        msgDiv.textContent = "✅ Comprovante enviado! O acesso será enviado para seu e-mail em breve.";
-        msgDiv.style.display = "block";
+        msgDiv.className = 'msg success';
+        msgDiv.innerHTML = licencaId
+          ? `✅ Comprovante enviado! Licença <strong>${licencaId}</strong> registrada. Acesso liberado após conferência manual em até 15–60 min.`
+          : `✅ Comprovante enviado! O acesso será liberado após conferência em até 60 min.`;
+        msgDiv.style.display = 'block';
         this.reset();
-      } else {
-        throw new Error();
-      }
-    } catch (err) {
-      msgDiv.className = "msg error";
-      msgDiv.textContent = "❌ Erro no envio. Envie o print para almafluxo@almafluxo.uk";
-      msgDiv.style.display = "block";
+      } else throw new Error();
+    } catch {
+      msgDiv.className = 'msg error';
+      msgDiv.textContent = '❌ Erro no envio. Envie o print para almafluxo@almafluxo.uk';
+      msgDiv.style.display = 'block';
     } finally {
-      btn.disabled = false;
-      btn.textContent = "ENVIAR COMPROVANTE";
+      btn.disabled = false; btn.textContent = 'ENVIAR COMPROVANTE';
     }
   });
 </script>
