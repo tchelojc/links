@@ -210,9 +210,12 @@
 
 <script>
   // ============================================================
-  // CONFIGURAÇÃO DO PROXY GOOGLE APPS SCRIPT (ATUALIZADA)
+  // CONFIGURAÇÃO DO PROXY GOOGLE APPS SCRIPT
   // ============================================================
   const PROXY_URL = 'https://script.google.com/macros/s/AKfycbwhGYrKsQm1lsLev3NLt6nXzfT5AxNDQnulb0lId1-wsjuePpGG4o53mgj3sg3H6Cmh/exec';
+
+  // ── CHAVE PIX CORRETA (UUID) ──
+  const CHAVE_PIX = 'f1461640-6c03-4298-8c28-f1119c968612';
 
   // ── Device ID (FNV-1a) ──
   const _DK = 'alma_device_id';
@@ -267,10 +270,12 @@
   document.getElementById('valor').textContent   = `R$ ${valorFormatado.replace('.',',')}`;
   document.getElementById('inputValorPago').value = valor;
 
-  // 3. QR Code PIX
-  const chavePix = 'tchelojc@gmail.com';
-  const qrUrl    = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=pix:${encodeURIComponent(chavePix)}?amount=${valor}`;
+  // 3. QR Code PIX usando a chave correta (UUID)
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=pix:${encodeURIComponent(CHAVE_PIX)}?amount=${valor}`;
   document.getElementById('qrCode').innerHTML = `<img src="${qrUrl}" alt="QR PIX" style="display:block;">`;
+
+  // Garante que o texto da chave exibido seja o UUID (já está no HTML, mas reforça)
+  document.getElementById('chavePix').textContent = CHAVE_PIX;
 
   // 4. Copiar chave PIX
   function copyPix() {
@@ -288,39 +293,54 @@
   async function chamarProxy(action, dados = {}) {
     const response = await fetch(PROXY_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action, ...dados })
     });
-    if (!response.ok) throw new Error(`Proxy error: ${response.status}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const result = await response.json();
     if (!result.ok) throw new Error(result.error || 'Erro desconhecido');
     return result;
   }
-
-  // Registra licença permanente via proxy
-  async function registrarPermanente(transacaoId, valorPago) {
+  
+  // Verifica se email já está cadastrado (em qualquer arquivo)
+  async function emailJaCadastrado(email) {
     try {
-      const diasNum = tipo === 'trading' ? parseInt(params.get('dias')||1) : null;
-      const expiraTrade = (tipo === 'trading' && diasNum)
-        ? Date.now() + diasNum * 24 * 60 * 60 * 1000
-        : null;
-
-      const result = await chamarProxy('register_permanent', {
-        email: email.toLowerCase(),
-        nome: nome,
-        tipo: tipo,
-        servicoNome: servicoNome,
-        detalhesTexto: detalhesTexto,
-        valor: valorPago,
-        transacaoId: transacaoId,
-        deviceId: deviceParam,
-        expira: expiraTrade
+      const { lista } = await chamarProxy('ler');
+      return lista.some(item => {
+        if (typeof item === 'string') return item.toLowerCase() === email.toLowerCase();
+        return item.email?.toLowerCase() === email.toLowerCase();
       });
-      return result.id;   // o proxy retorna { ok: true, id: "P0001" }
-    } catch (err) {
-      console.error('[ALMAFLUXO pagamento]', err);
-      return null;
+    } catch {
+      return false;
     }
+  }
+  
+  // Registra licença permanente (apenas se não existir)
+  async function registrarPermanente(transacaoId, valorPago) {
+    const jaExiste = await emailJaCadastrado(email);
+    if (jaExiste) {
+      console.log(`E-mail ${email} já possui licença. Apenas notificando.`);
+      return 'DUPLICADO';
+    }
+  
+    const diasNum = tipo === 'trading' ? parseInt(params.get('dias')||1) : null;
+    const expiraTrade = (tipo === 'trading' && diasNum)
+      ? Date.now() + diasNum * 24 * 60 * 60 * 1000
+      : null;
+  
+    const result = await chamarProxy('register_permanent', {
+      email: email.toLowerCase(),
+      nome: nome,
+      tipo: tipo,
+      servicoNome: servicoNome,
+      detalhesTexto: detalhesTexto,
+      valor: valorPago,
+      transacaoId: transacaoId,
+      deviceId: deviceParam,
+      expira: expiraTrade,
+      collection: 'principal'
+    });
+    return result.id;
   }
 
   // 5. Envio do comprovante (Web3Forms + registro de licença)
@@ -348,9 +368,9 @@
       `DEVICE ID: ${deviceParam}\n` +
       `\nDados do Comprovante:\n` +
       `VALOR PAGO: R$ ${valorPago}\nID/REF: ${transacaoId}\n` +
-      `LICENÇA GERADA: ${licencaId || 'PENDENTE (registrar manualmente)'}\n` +
+      `LICENÇA GERADA: ${licencaId === 'DUPLICADO' ? 'JÁ POSSUI LICENÇA ATIVA' : (licencaId || 'PENDENTE (registrar manualmente)')}\n` +
       `────────────────────────────────────\n` +
-      `Chave PIX: ${chavePix}`;
+      `Chave PIX: ${CHAVE_PIX}`;
 
     fd.append('message', corpoEmail);
 
@@ -359,9 +379,13 @@
       const d = await r.json();
       if (d.success) {
         msgDiv.className = 'msg success';
-        msgDiv.innerHTML = licencaId
-          ? `✅ Comprovante enviado! Licença <strong>${licencaId}</strong> registrada. Acesso liberado após conferência manual em até 15–60 min.`
-          : `✅ Comprovante enviado! O acesso será liberado após conferência em até 60 min.`;
+        if (licencaId === 'DUPLICADO') {
+          msgDiv.innerHTML = `⚠️ Este e-mail já possui licença ativa. O comprovante foi enviado para análise.`;
+        } else if (licencaId) {
+          msgDiv.innerHTML = `✅ Comprovante enviado! Licença <strong>${licencaId}</strong> registrada. Acesso liberado após conferência manual em até 60 min.`;
+        } else {
+          msgDiv.innerHTML = `✅ Comprovante enviado! O acesso será liberado após conferência em até 60 min.`;
+        }
         msgDiv.style.display = 'block';
         this.reset();
       } else throw new Error();
